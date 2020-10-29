@@ -46,6 +46,14 @@ const Keyboard = {
           (currentValue) => {
             element.value = currentValue;
             element.focus();
+            if (this.properties.shift) {
+              this._toggleShift();
+              this.elements.keys.forEach((key) => {
+                if (key.classList.contains('keyboard__key--active-once')) {
+                  key.classList.remove('keyboard__key--active-once');
+                }
+              });
+            }
           },
           () => {
             element.blur();
@@ -130,8 +138,11 @@ const Keyboard = {
           keyElement.classList.add('keyboard__key--wide');
           keyElement.innerHTML = createIconHTML('keyboard_arrow_up');
           keyElement.addEventListener('click', (e) => {
-            // TODO:
-            console.log(e);
+            this._toggleShift();
+            keyElement.classList.toggle(
+              'keyboard__key--active-once',
+              this.properties.shift
+            );
           });
           break;
 
@@ -192,9 +203,10 @@ const Keyboard = {
         default:
           keyElement.textContent = key.toLowerCase();
           keyElement.addEventListener('click', (e) => {
-            this.properties.value += this.properties.capsLock
-              ? key.toUpperCase()
-              : key.toLowerCase();
+            this.properties.value +=
+              this.properties.capsLock || this.properties.shift
+                ? key.toUpperCase()
+                : key.toLowerCase();
             this._triggerEvent('oninput');
           });
           break;
@@ -221,9 +233,11 @@ const Keyboard = {
 
     for (const key of this.elements.keys) {
       if (key.childElementCount === 0) {
-        key.textContent = this.properties.capsLock
-          ? key.textContent.toUpperCase()
-          : key.textContent.toLowerCase();
+        key.textContent =
+          (!this.properties.shift && this.properties.capsLock) ||
+          (this.properties.shift && !this.properties.capsLock)
+            ? key.textContent.toUpperCase()
+            : key.textContent.toLowerCase();
       }
     }
   },
@@ -231,7 +245,37 @@ const Keyboard = {
   _toggleShift() {
     this.properties.shift = !this.properties.shift;
 
-    // TODO:
+    for (const key of this.elements.keys) {
+      if (key.childElementCount === 0) {
+        switch (key.textContent) {
+          case ',':
+            key.textContent = ';';
+            break;
+          case '.':
+            key.textContent = ':';
+            break;
+          case '?':
+            key.textContent = '!';
+            break;
+          case ';':
+            key.textContent = ',';
+            break;
+          case ':':
+            key.textContent = '.';
+            break;
+          case '!':
+            key.textContent = '?';
+            break;
+          default:
+            key.textContent =
+              (this.properties.shift && !this.properties.capsLock) ||
+              (!this.properties.shift && this.properties.capsLock)
+                ? key.textContent.toUpperCase()
+                : key.textContent.toLowerCase();
+            break;
+        }
+      }
+    }
   },
 
   _toggleLang() {

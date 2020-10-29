@@ -48,7 +48,8 @@
 }
 
 .keyboard__key:active,
-.keyboard__key:hover {
+.keyboard__key:hover,
+.keyboard__key--active-once {
   background: rgba(255, 255, 255, 0.12);
   box-shadow: 0 0 35px #4dc247;
   color: #4dc247;

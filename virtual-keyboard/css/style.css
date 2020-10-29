@@ -44,10 +44,14 @@
   padding: 0;
   -webkit-tap-highlight-color: transparent;
   position: relative;
+  transition: all 0.3s ease;
 }
 
-.keyboard__key:active {
+.keyboard__key:active,
+.keyboard__key:hover {
   background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 35px #4dc247;
+  color: #4dc247;
 }
 
 .keyboard__key--unfilled {

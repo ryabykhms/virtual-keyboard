@@ -204,7 +204,8 @@ const Keyboard = {
           keyElement.textContent = key.toLowerCase();
           keyElement.addEventListener('click', (e) => {
             this.properties.value +=
-              this.properties.capsLock || this.properties.shift
+              (this.properties.capsLock && !this.properties.shift) ||
+              (!this.properties.capsLock && this.properties.shift)
                 ? key.toUpperCase()
                 : key.toLowerCase();
             this._triggerEvent('oninput');

@@ -64,18 +64,6 @@
   outline: none;
 }
 
-.keyboard__panel {
-  position: relative;
-  width: 100%;
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-}
-
-.keyboard__key--close {
-  /* position: absolute; */
-}
-
 .keyboard__key--wide {
   width: 12%;
 }

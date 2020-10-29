@@ -45,6 +45,7 @@ const Keyboard = {
           element.value,
           (currentValue) => {
             element.value = currentValue;
+            element.focus();
           },
           () => {
             element.blur();
@@ -57,23 +58,32 @@ const Keyboard = {
   _createKeys() {
     const fragment = document.createDocumentFragment();
     // prettier-ignore
-    const keyLayout = [
-      '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'backspace',
-      'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
-      'caps', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'enter',
-      'shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?',
-      'done', 'voice', 'lang', 'space', 'left', 'right'
-    ];
+    const keyLayout = {
+      en: [
+        '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'backspace',
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
+        'caps', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'enter',
+        'shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?',
+        'done', 'voice', 'lang', 'space', 'left', 'right'
+      ],
+      ru: [
+        '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'backspace',
+        'й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х', 'ъ',
+        'caps', 'ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж', 'э', 'enter',
+        'shift', 'я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', ',', '.', '?',
+        'done', 'voice', 'lang', 'space', 'left', 'right'
+      ],
+    };
 
     // Creates HTML for an icon
     const createIconHTML = (iconName) => {
       return `<i class="material-icons">${iconName}</i>`;
     };
 
-    keyLayout.forEach((key) => {
+    keyLayout[this.properties.lang].forEach((key) => {
       const keyElement = document.createElement('button');
       const insertLineBreak =
-        ['backspace', 'p', 'enter', '?'].indexOf(key) !== -1;
+        ['backspace', 'p', 'enter', '?', 'ъ'].indexOf(key) !== -1;
 
       // Add attributes/classes
       keyElement.setAttribute('type', 'button');
@@ -147,8 +157,8 @@ const Keyboard = {
           keyElement.classList.add('keyboard__key--dark');
           keyElement.innerHTML = this.properties.lang;
           keyElement.addEventListener('click', (e) => {
-            // TODO:
-            console.log(e);
+            this._toggleLang();
+            keyElement.innerHTML = this.properties.lang;
           });
           break;
 
@@ -226,8 +236,12 @@ const Keyboard = {
 
   _toggleLang() {
     this.properties.lang = this.properties.lang === 'en' ? 'ru' : 'en';
+    this.elements.keysContainer.innerHTML = '';
+    this.elements.keysContainer.appendChild(this._createKeys());
 
-    // TODO:
+    this.elements.keys = this.elements.keysContainer.querySelectorAll(
+      '.keyboard__key'
+    );
   },
 
   open(initialValue, oninput, onclose) {

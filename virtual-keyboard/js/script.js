@@ -41,9 +41,15 @@ const Keyboard = {
     // Automatically use keyboard for elements with class .use-virtual-keyboard
     document.querySelectorAll('.use-virtual-keyboard').forEach((element) => {
       element.addEventListener('focus', () => {
-        this.open(element.value, (currentValue) => {
-          element.value = currentValue;
-        });
+        this.open(
+          element.value,
+          (currentValue) => {
+            element.value = currentValue;
+          },
+          () => {
+            element.blur();
+          }
+        );
       });
     });
   },
@@ -233,8 +239,6 @@ const Keyboard = {
 
   close() {
     this.properties.value = '';
-    this.eventHandlers.oninput = oninput;
-    this.eventHandlers.onclose = onclose;
     this.elements.main.classList.add('keyboard--hidden');
   },
 };

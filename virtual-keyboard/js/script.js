@@ -17,6 +17,24 @@ const Keyboard = {
     shift: false,
   },
 
+  // prettier-ignore
+  keyLayout: {
+    en: [
+      '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'backspace',
+      'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
+      'caps', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'enter',
+      'shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?',
+      'done', 'voice', 'lang', 'space', 'left', 'right'
+    ],
+    ru: [
+      '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'backspace',
+      'й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х', 'ъ',
+      'caps', 'ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж', 'э', 'enter',
+      'shift', 'я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', ',', '.', '?',
+      'done', 'voice', 'lang', 'space', 'left', 'right'
+    ],
+  },
+
   init() {
     // Create main elements
     this.elements.main = document.createElement('div');
@@ -61,27 +79,51 @@ const Keyboard = {
         );
       });
     });
+
+    document.addEventListener('keydown', (e) => {
+      this._handlePhysicalKeyboard(e);
+    });
+
+    document.addEventListener('keyup', (e) => {
+      this._handlePhysicalKeyboard(e);
+    });
+  },
+
+  // TODO:
+  // - handle change keyboard language
+  // - handle shift
+  // - handle caps
+  _handlePhysicalKeyboard(e) {
+    let symbol;
+
+    if (e.key !== undefined) {
+      symbol = e.key;
+    } else if (e.keyIdentifier !== undefined) {
+      symbol = String.fromCharCode(e.keyIdentifier);
+    } else if (e.keyCode !== undefined) {
+      symbol = String.fromCharCode(e.keyCode);
+    }
+
+    let key = symbol.toLowerCase();
+    key = key === 'capslock' ? 'caps' : key;
+    key = key === ' ' ? 'space' : key;
+    let keyIndex = this.keyLayout[this.properties.lang].indexOf(key);
+    if (keyIndex !== -1) {
+      if (e.type === 'keydown') {
+        this.elements.keys[keyIndex].classList.add(
+          'keyboard__key--active-once'
+        );
+      } else if (e.type === 'keyup') {
+        this.elements.keys[keyIndex].classList.remove(
+          'keyboard__key--active-once'
+        );
+      }
+    }
   },
 
   _createKeys() {
     const fragment = document.createDocumentFragment();
-    // prettier-ignore
-    const keyLayout = {
-      en: [
-        '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'backspace',
-        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
-        'caps', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'enter',
-        'shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?',
-        'done', 'voice', 'lang', 'space', 'left', 'right'
-      ],
-      ru: [
-        '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'backspace',
-        'й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х', 'ъ',
-        'caps', 'ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж', 'э', 'enter',
-        'shift', 'я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', ',', '.', '?',
-        'done', 'voice', 'lang', 'space', 'left', 'right'
-      ],
-    };
+    const keyLayout = this.keyLayout;
 
     // Creates HTML for an icon
     const createIconHTML = (iconName) => {

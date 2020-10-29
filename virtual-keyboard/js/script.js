@@ -3,6 +3,7 @@ const Keyboard = {
     main: null,
     keysContainer: null,
     keys: [],
+    current: null,
   },
 
   eventHandlers: {
@@ -15,6 +16,7 @@ const Keyboard = {
     capsLock: false,
     lang: 'en',
     shift: false,
+    position: 0,
   },
 
   // prettier-ignore
@@ -58,7 +60,8 @@ const Keyboard = {
 
     // Automatically use keyboard for elements with class .use-virtual-keyboard
     document.querySelectorAll('.use-virtual-keyboard').forEach((element) => {
-      element.addEventListener('focus', () => {
+      element.addEventListener('focus', (e) => {
+        this.elements.current = element;
         this.open(
           element.value,
           (currentValue) => {
@@ -72,11 +75,16 @@ const Keyboard = {
                 }
               });
             }
+            this.properties.position++;
+            element.selectionStart = element.selectionEnd = this.properties.position;
           },
           () => {
             element.blur();
           }
         );
+      });
+      element.addEventListener('click', (e) => {
+        this.properties.position = e.target.selectionStart;
       });
     });
 
@@ -86,6 +94,8 @@ const Keyboard = {
 
     document.addEventListener('keyup', (e) => {
       this._handlePhysicalKeyboard(e);
+      this.properties.value = e.target.value;
+      this.properties.position = e.target.selectionStart;
     });
   },
 
@@ -228,8 +238,9 @@ const Keyboard = {
           keyElement.classList.add('keyboard__key--wide');
           keyElement.innerHTML = createIconHTML('arrow_back');
           keyElement.addEventListener('click', (e) => {
-            // TODO:
-            console.log(e);
+            const pos = this.properties.position - 1;
+            this.properties.position = pos >= 0 ? pos : 0;
+            this._changePosition();
           });
           break;
 
@@ -237,19 +248,23 @@ const Keyboard = {
           keyElement.classList.add('keyboard__key--wide');
           keyElement.innerHTML = createIconHTML('arrow_forward');
           keyElement.addEventListener('click', (e) => {
-            // TODO:
-            console.log(e);
+            const pos = this.properties.position + 1;
+            const length = this.properties.value.length;
+            this.properties.position = pos < length ? pos : length;
+            this._changePosition();
           });
           break;
 
         default:
           keyElement.textContent = key.toLowerCase();
           keyElement.addEventListener('click', (e) => {
-            this.properties.value +=
-              (this.properties.capsLock && !this.properties.shift) ||
-              (!this.properties.capsLock && this.properties.shift)
-                ? key.toUpperCase()
-                : key.toLowerCase();
+            const { position, value } = this.properties;
+            const length = value.length;
+            const keyVal = this._toggleCase(keyElement.textContent);
+            this.properties.value = `${value.slice(
+              0,
+              position
+            )}${keyVal}${value.slice(position, length)}`;
             this._triggerEvent('oninput');
           });
           break;
@@ -276,11 +291,7 @@ const Keyboard = {
 
     for (const key of this.elements.keys) {
       if (key.childElementCount === 0) {
-        key.textContent =
-          (!this.properties.shift && this.properties.capsLock) ||
-          (this.properties.shift && !this.properties.capsLock)
-            ? key.textContent.toUpperCase()
-            : key.textContent.toLowerCase();
+        key.textContent = this._toggleCase(key.textContent);
       }
     }
   },
@@ -310,15 +321,16 @@ const Keyboard = {
             key.textContent = '?';
             break;
           default:
-            key.textContent =
-              (this.properties.shift && !this.properties.capsLock) ||
-              (!this.properties.shift && this.properties.capsLock)
-                ? key.textContent.toUpperCase()
-                : key.textContent.toLowerCase();
+            key.textContent = this._toggleCase(key.textContent);
             break;
         }
       }
     }
+  },
+
+  _changePosition() {
+    const position = this.properties.position;
+    this.elements.current.selectionStart = this.elements.current.selectionEnd = position;
   },
 
   _toggleLang() {
@@ -328,6 +340,17 @@ const Keyboard = {
 
     this.elements.keys = this.elements.keysContainer.querySelectorAll(
       '.keyboard__key'
+    );
+  },
+
+  _toggleCase(key) {
+    return this._isUpperCase() ? key.toUpperCase() : key.toLowerCase();
+  },
+
+  _isUpperCase() {
+    return (
+      (this.properties.shift && !this.properties.capsLock) ||
+      (!this.properties.shift && this.properties.capsLock)
     );
   },
 

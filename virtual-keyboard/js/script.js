@@ -301,6 +301,7 @@ const Keyboard = {
               this._toggleVoice();
               const { voice } = this.properties;
               if (voice) {
+                recognition.stop();
                 recognition.start();
               } else {
                 recognition.stop();
@@ -320,6 +321,7 @@ const Keyboard = {
               recognition.addEventListener('end', (e) => {
                 const { voice } = this.properties;
                 if (voice) {
+                  recognition.stop();
                   recognition.start();
                 } else {
                   recognition.stop();

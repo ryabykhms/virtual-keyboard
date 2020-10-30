@@ -3,6 +3,7 @@ const Keyboard = {
     main: null,
     keysContainer: null,
     keys: [],
+    sounds: null,
     current: null,
   },
 
@@ -18,6 +19,7 @@ const Keyboard = {
     shift: false,
     position: 0,
     voice: false,
+    sound: true,
   },
 
   // prettier-ignore
@@ -27,21 +29,84 @@ const Keyboard = {
       'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
       'caps', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'enter',
       'shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?',
-      'done', 'voice', 'lang', 'space', 'left', 'right'
+      'done', 'voice', 'sound', 'lang', 'space', 'left', 'right'
     ],
     ru: [
       '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'backspace',
       'й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х', 'ъ',
       'caps', 'ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж', 'э', 'enter',
       'shift', 'я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', ',', '.', '?',
-      'done', 'voice', 'lang', 'space', 'left', 'right'
+      'done', 'voice', 'sound', 'lang', 'space', 'left', 'right'
     ],
+  },
+
+  sounds: {
+    en: {
+      shift: 'shift.wav',
+      caps: 'caps.wav',
+      backspace: 'backspace.wav',
+      enter: 'enter.wav',
+      space: 'space.wav',
+      sounds: 'sounds.wav',
+      lang: 'lang.wav',
+      default: 'default.wav',
+    },
+
+    ru: {
+      shift: 'shift.wav',
+      caps: 'caps.wav',
+      backspace: 'backspace.wav',
+      enter: 'enter.wav',
+      space: 'space.wav',
+      sounds: 'sounds.wav',
+      lang: 'lang.wav',
+      default: 'default.wav',
+    },
+  },
+
+  _initSounds() {
+    this.elements.sounds = {
+      ru: {},
+      en: {},
+    };
+    this.elements.sounds.ru = {
+      shift: this._initSoundElement('shift', 'ru'),
+      caps: this._initSoundElement('caps', 'ru'),
+      backspace: this._initSoundElement('backspace', 'ru'),
+      enter: this._initSoundElement('enter', 'ru'),
+      space: this._initSoundElement('space', 'ru'),
+      sounds: this._initSoundElement('sounds', 'ru'),
+      lang: this._initSoundElement('lang', 'ru'),
+      default: this._initSoundElement('default', 'ru'),
+    };
+
+    this.elements.sounds.en = {
+      shift: this._initSoundElement('shift', 'en'),
+      caps: this._initSoundElement('caps', 'en'),
+      backspace: this._initSoundElement('backspace', 'en'),
+      enter: this._initSoundElement('enter', 'en'),
+      space: this._initSoundElement('space', 'en'),
+      sounds: this._initSoundElement('sounds', 'en'),
+      lang: this._initSoundElement('lang', 'en'),
+      default: this._initSoundElement('default', 'en'),
+    };
+  },
+
+  _initSoundElement(btn, lang) {
+    const element = document.createElement('audio');
+    element.src = this._soundSrc(this.sounds[lang][btn], lang);
+    return element;
+  },
+
+  _soundSrc(name, lang) {
+    return `./assets/sounds/${lang}/${name}`;
   },
 
   init() {
     // Create main elements
     this.elements.main = document.createElement('div');
     this.elements.keysContainer = document.createElement('div');
+    this._initSounds();
 
     // Setup main elements
     this.elements.main.classList.add('keyboard', 'keyboard--hidden');
@@ -57,6 +122,9 @@ const Keyboard = {
     this.elements.main.addEventListener('mousedown', (e) => {
       e.preventDefault();
     });
+    for (let sound in this.elements.sounds) {
+      this.elements.main.appendChild(this.elements.sounds[sound].shift);
+    }
     document.body.appendChild(this.elements.main);
 
     // Automatically use keyboard for elements with class .use-virtual-keyboard
@@ -155,10 +223,16 @@ const Keyboard = {
           keyElement.classList.add('keyboard__key--wide');
           keyElement.innerHTML = this._createIconHtml('backspace');
           keyElement.addEventListener('click', (e) => {
-            this.properties.value = this.properties.value.substring(
-              0,
-              this.properties.value.length - 1
-            );
+            let { lang, value, position } = this.properties;
+            if (position > 0) {
+              this.properties.value = `${value.substring(
+                0,
+                position === 0 ? 0 : position - 1
+              )}${value.substring(position, value.length)}`;
+              this.properties.position = position <= 0 ? 0 : position - 2;
+            }
+
+            this._playSound(this.elements.sounds[lang].backspace);
             this._triggerEvent('oninput');
           });
           break;
@@ -171,10 +245,9 @@ const Keyboard = {
           keyElement.innerHTML = this._createIconHtml('keyboard_capslock');
           keyElement.addEventListener('click', (e) => {
             this._toggleCapsLock();
-            keyElement.classList.toggle(
-              'keyboard__key--active',
-              this.properties.capsLock
-            );
+            const { lang, capsLock } = this.properties;
+            keyElement.classList.toggle('keyboard__key--active', capsLock);
+            this._playSound(this.elements.sounds[lang].caps);
           });
           break;
 
@@ -182,8 +255,10 @@ const Keyboard = {
           keyElement.classList.add('keyboard__key--wide');
           keyElement.innerHTML = this._createIconHtml('keyboard_return');
           keyElement.addEventListener('click', (e) => {
-            this.properties.value += '\n';
+            this._changeValueByPosition('\n');
             this._triggerEvent('oninput');
+            const { lang } = this.properties;
+            this._playSound(this.elements.sounds[lang].enter);
           });
           break;
 
@@ -192,11 +267,11 @@ const Keyboard = {
           keyElement.innerHTML = this._createIconHtml('keyboard_arrow_up');
           keyElement.addEventListener('click', (e) => {
             this._toggleShift();
-            keyElement.classList.toggle(
-              'keyboard__key--active-once',
-              this.properties.shift
-            );
+            const { lang, shift } = this.properties;
+            keyElement.classList.toggle('keyboard__key--active-once', shift);
+            this._playSound(this.elements.sounds[lang].shift);
           });
+
           break;
 
         case 'done':
@@ -204,6 +279,8 @@ const Keyboard = {
           keyElement.innerHTML = this._createIconHtml('keyboard_hide');
           keyElement.addEventListener('click', (e) => {
             this.close();
+            const { lang } = this.properties;
+            this._playSound(this.elements.sounds[lang].default);
             this._triggerEvent('onclose');
           });
           break;
@@ -213,38 +290,61 @@ const Keyboard = {
           keyElement.innerHTML = this._createIconHtml('keyboard_voice');
           window.SpeechRecognition =
             window.SpeechRecognition || window.webkitSpeechRecognition;
-          const { lang } = this.properties;
-          const recognition = new SpeechRecognition();
-          recognition.interimResults = true;
-          recognition.lang = lang === 'en' ? 'en-US' : 'ru-RU';
-          keyElement.addEventListener('click', (e) => {
-            this._toggleVoice();
-            const { voice } = this.properties;
-            if (voice) {
-              recognition.start();
-            } else {
-              recognition.stop();
-            }
-            recognition.addEventListener('result', (e) => {
-              const transcript = Array.from(e.results)
-                .map((result) => result[0])
-                .map((result) => result.transcript)
-                .join('');
-
-              if (e.results[0].isFinal) {
-                this.properties.value += transcript;
-                this.properties.position += transcript.length;
-                this._triggerEvent('oninput');
-              }
-            });
-            recognition.addEventListener('end', (e) => {
+          try {
+            const { lang } = this.properties;
+            const recognition = new SpeechRecognition();
+            recognition.interimResults = true;
+            recognition.lang = lang === 'en' ? 'en-US' : 'ru-RU';
+            keyElement.addEventListener('click', (e) => {
+              const { lang } = this.properties;
+              this._playSound(this.elements.sounds[lang].enter);
+              this._toggleVoice();
               const { voice } = this.properties;
               if (voice) {
                 recognition.start();
               } else {
                 recognition.stop();
               }
+              recognition.addEventListener('result', (e) => {
+                const transcript = Array.from(e.results)
+                  .map((result) => result[0])
+                  .map((result) => result.transcript)
+                  .join('');
+
+                if (e.results[0].isFinal) {
+                  this._changeValueByPosition(transcript + ' ');
+                  this.properties.position += transcript.length;
+                  this._triggerEvent('oninput');
+                }
+              });
+              recognition.addEventListener('end', (e) => {
+                const { voice } = this.properties;
+                if (voice) {
+                  recognition.start();
+                } else {
+                  recognition.stop();
+                }
+              });
             });
+          } catch (e) {
+            console.log("Browser doesn't support Speech Recognition");
+          }
+          break;
+
+        case 'sound':
+          const sound = this.properties.sound;
+          keyElement.classList.add('keyboard__key--dark');
+          keyElement.innerHTML = sound
+            ? this._createIconHtml('volume_off')
+            : this._createIconHtml('volume_up');
+          keyElement.addEventListener('click', (e) => {
+            this._toggleSound();
+            const sound = this.properties.sound;
+            keyElement.innerHTML = sound
+              ? this._createIconHtml('volume_off')
+              : this._createIconHtml('volume_up');
+            const { lang } = this.properties;
+            this._playSound(this.elements.sounds[lang].sounds);
           });
           break;
 
@@ -254,6 +354,8 @@ const Keyboard = {
           keyElement.addEventListener('click', (e) => {
             this._toggleLang();
             keyElement.innerHTML = this.properties.lang;
+            const { lang } = this.properties;
+            this._playSound(this.elements.sounds[lang].lang);
           });
           break;
 
@@ -261,7 +363,9 @@ const Keyboard = {
           keyElement.classList.add('keyboard__key--extra-wide');
           keyElement.innerHTML = this._createIconHtml('space_bar');
           keyElement.addEventListener('click', (e) => {
-            this.properties.value += ' ';
+            this._changeValueByPosition(' ');
+            const { lang } = this.properties;
+            this._playSound(this.elements.sounds[lang].space);
             this._triggerEvent('oninput');
           });
           break;
@@ -272,6 +376,8 @@ const Keyboard = {
           keyElement.addEventListener('click', (e) => {
             const pos = this.properties.position - 1;
             this.properties.position = pos >= 0 ? pos : 0;
+            const { lang } = this.properties;
+            this._playSound(this.elements.sounds[lang].default);
             this._changePosition();
           });
           break;
@@ -283,6 +389,8 @@ const Keyboard = {
             const pos = this.properties.position + 1;
             const length = this.properties.value.length;
             this.properties.position = pos < length ? pos : length;
+            const { lang } = this.properties;
+            this._playSound(this.elements.sounds[lang].default);
             this._changePosition();
           });
           break;
@@ -290,14 +398,10 @@ const Keyboard = {
         default:
           keyElement.textContent = key.toLowerCase();
           keyElement.addEventListener('click', (e) => {
-            const { position, value } = this.properties;
-            const length = value.length;
-            const keyVal = this._toggleCase(keyElement.textContent);
-            this.properties.value = `${value.slice(
-              0,
-              position
-            )}${keyVal}${value.slice(position, length)}`;
+            this._changeValueByPosition(keyElement.textContent);
             this._triggerEvent('oninput');
+            const { lang } = this.properties;
+            this._playSound(this.elements.sounds[lang].default);
           });
           break;
       }
@@ -310,6 +414,23 @@ const Keyboard = {
     });
 
     return fragment;
+  },
+
+  _changeValueByPosition(text) {
+    const { position, value } = this.properties;
+    const length = value.length;
+    const keyVal = this._toggleCase(text);
+    this.properties.value = `${value.slice(0, position)}${keyVal}${value.slice(
+      position,
+      length
+    )}`;
+  },
+
+  _playSound(audioElement) {
+    if (this.properties.sound) {
+      audioElement.currentTime = 0;
+      audioElement.play();
+    }
   },
 
   _triggerEvent(handlerName) {
@@ -383,6 +504,10 @@ const Keyboard = {
         );
       }
     }
+  },
+
+  _toggleSound() {
+    this.properties.sound = !this.properties.sound;
   },
 
   _toggleLang() {

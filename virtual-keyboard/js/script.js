@@ -133,7 +133,7 @@ const Keyboard = {
         this.elements.current = element;
         this.open(
           element.value,
-          (currentValue) => {
+          (currentValue, args) => {
             element.value = currentValue;
             element.focus();
             if (this.properties.shift) {
@@ -144,7 +144,9 @@ const Keyboard = {
                 }
               });
             }
-            this.properties.position++;
+            if (args !== 'backspace') {
+              this.properties.position++;
+            }
             element.selectionStart = element.selectionEnd = this.properties.position;
           },
           () => {
@@ -229,11 +231,11 @@ const Keyboard = {
                 0,
                 position === 0 ? 0 : position - 1
               )}${value.substring(position, value.length)}`;
-              this.properties.position = position <= 0 ? 0 : position - 2;
+              this.properties.position = position <= 0 ? 0 : position - 1;
             }
 
             this._playSound(this.elements.sounds[lang].backspace);
-            this._triggerEvent('oninput');
+            this._triggerEvent('oninput', 'backspace');
           });
           break;
 
@@ -435,9 +437,9 @@ const Keyboard = {
     }
   },
 
-  _triggerEvent(handlerName) {
+  _triggerEvent(handlerName, args) {
     if (typeof this.eventHandlers[handlerName] === 'function') {
-      this.eventHandlers[handlerName](this.properties.value);
+      this.eventHandlers[handlerName](this.properties.value, args);
     }
   },
 

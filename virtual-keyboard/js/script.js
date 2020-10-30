@@ -17,6 +17,7 @@ const Keyboard = {
     lang: 'en',
     shift: false,
     position: 0,
+    voice: false,
   },
 
   // prettier-ignore
@@ -131,14 +132,14 @@ const Keyboard = {
     }
   },
 
+  // Creates HTML for an icon
+  _createIconHtml(iconName) {
+    return `<i class="material-icons">${iconName}</i>`;
+  },
+
   _createKeys() {
     const fragment = document.createDocumentFragment();
     const keyLayout = this.keyLayout;
-
-    // Creates HTML for an icon
-    const createIconHTML = (iconName) => {
-      return `<i class="material-icons">${iconName}</i>`;
-    };
 
     keyLayout[this.properties.lang].forEach((key) => {
       const keyElement = document.createElement('button');
@@ -152,7 +153,7 @@ const Keyboard = {
       switch (key) {
         case 'backspace':
           keyElement.classList.add('keyboard__key--wide');
-          keyElement.innerHTML = createIconHTML('backspace');
+          keyElement.innerHTML = this._createIconHtml('backspace');
           keyElement.addEventListener('click', (e) => {
             this.properties.value = this.properties.value.substring(
               0,
@@ -167,7 +168,7 @@ const Keyboard = {
             'keyboard__key--wide',
             'keyboard__key--activatable'
           );
-          keyElement.innerHTML = createIconHTML('keyboard_capslock');
+          keyElement.innerHTML = this._createIconHtml('keyboard_capslock');
           keyElement.addEventListener('click', (e) => {
             this._toggleCapsLock();
             keyElement.classList.toggle(
@@ -179,7 +180,7 @@ const Keyboard = {
 
         case 'enter':
           keyElement.classList.add('keyboard__key--wide');
-          keyElement.innerHTML = createIconHTML('keyboard_return');
+          keyElement.innerHTML = this._createIconHtml('keyboard_return');
           keyElement.addEventListener('click', (e) => {
             this.properties.value += '\n';
             this._triggerEvent('oninput');
@@ -188,7 +189,7 @@ const Keyboard = {
 
         case 'shift':
           keyElement.classList.add('keyboard__key--wide');
-          keyElement.innerHTML = createIconHTML('keyboard_arrow_up');
+          keyElement.innerHTML = this._createIconHtml('keyboard_arrow_up');
           keyElement.addEventListener('click', (e) => {
             this._toggleShift();
             keyElement.classList.toggle(
@@ -200,7 +201,7 @@ const Keyboard = {
 
         case 'done':
           keyElement.classList.add('keyboard__key--dark');
-          keyElement.innerHTML = createIconHTML('keyboard_hide');
+          keyElement.innerHTML = this._createIconHtml('keyboard_hide');
           keyElement.addEventListener('click', (e) => {
             this.close();
             this._triggerEvent('onclose');
@@ -209,10 +210,41 @@ const Keyboard = {
 
         case 'voice':
           keyElement.classList.add('keyboard__key--dark');
-          keyElement.innerHTML = createIconHTML('keyboard_voice');
+          keyElement.innerHTML = this._createIconHtml('keyboard_voice');
+          window.SpeechRecognition =
+            window.SpeechRecognition || window.webkitSpeechRecognition;
+          const { lang } = this.properties;
+          const recognition = new SpeechRecognition();
+          recognition.interimResults = true;
+          recognition.lang = lang === 'en' ? 'en-US' : 'ru-RU';
           keyElement.addEventListener('click', (e) => {
-            // TODO:
-            console.log(e);
+            this._toggleVoice();
+            const { voice } = this.properties;
+            if (voice) {
+              recognition.start();
+            } else {
+              recognition.stop();
+            }
+            recognition.addEventListener('result', (e) => {
+              const transcript = Array.from(e.results)
+                .map((result) => result[0])
+                .map((result) => result.transcript)
+                .join('');
+
+              if (e.results[0].isFinal) {
+                this.properties.value += transcript;
+                this.properties.position += transcript.length;
+                this._triggerEvent('oninput');
+              }
+            });
+            recognition.addEventListener('end', (e) => {
+              const { voice } = this.properties;
+              if (voice) {
+                recognition.start();
+              } else {
+                recognition.stop();
+              }
+            });
           });
           break;
 
@@ -227,7 +259,7 @@ const Keyboard = {
 
         case 'space':
           keyElement.classList.add('keyboard__key--extra-wide');
-          keyElement.innerHTML = createIconHTML('space_bar');
+          keyElement.innerHTML = this._createIconHtml('space_bar');
           keyElement.addEventListener('click', (e) => {
             this.properties.value += ' ';
             this._triggerEvent('oninput');
@@ -236,7 +268,7 @@ const Keyboard = {
 
         case 'left':
           keyElement.classList.add('keyboard__key--wide');
-          keyElement.innerHTML = createIconHTML('arrow_back');
+          keyElement.innerHTML = this._createIconHtml('arrow_back');
           keyElement.addEventListener('click', (e) => {
             const pos = this.properties.position - 1;
             this.properties.position = pos >= 0 ? pos : 0;
@@ -246,7 +278,7 @@ const Keyboard = {
 
         case 'right':
           keyElement.classList.add('keyboard__key--wide');
-          keyElement.innerHTML = createIconHTML('arrow_forward');
+          keyElement.innerHTML = this._createIconHtml('arrow_forward');
           keyElement.addEventListener('click', (e) => {
             const pos = this.properties.position + 1;
             const length = this.properties.value.length;
@@ -331,6 +363,26 @@ const Keyboard = {
   _changePosition() {
     const position = this.properties.position;
     this.elements.current.selectionStart = this.elements.current.selectionEnd = position;
+  },
+
+  _toggleVoice() {
+    this.properties.voice = !this.properties.voice;
+    const { lang, voice } = this.properties;
+    const index = this.keyLayout[lang].indexOf('voice');
+    if (index !== -1) {
+      if (voice) {
+        this.elements.keys[index].innerHTML = this._createIconHtml('mic_off');
+
+        this.elements.keys[index].classList.add('keyboard__key--active-once');
+      } else {
+        this.elements.keys[index].innerHTML = this._createIconHtml(
+          'keyboard_voice'
+        );
+        this.elements.keys[index].classList.remove(
+          'keyboard__key--active-once'
+        );
+      }
+    }
   },
 
   _toggleLang() {

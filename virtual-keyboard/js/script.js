@@ -28,7 +28,7 @@ const Keyboard = {
       '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'backspace',
       'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
       'caps', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'enter',
-      'shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?',
+      'shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',
       'done', 'voice', 'sound', 'lang', 'space', 'left', 'right'
     ],
     ru: [
@@ -138,11 +138,6 @@ const Keyboard = {
             element.focus();
             if (this.properties.shift) {
               this._toggleShift();
-              this.elements.keys.forEach((key) => {
-                if (key.classList.contains('keyboard__key--active-once')) {
-                  key.classList.remove('keyboard__key--active-once');
-                }
-              });
             }
             if (args !== 'backspace') {
               this.properties.position++;
@@ -170,10 +165,6 @@ const Keyboard = {
     });
   },
 
-  // TODO:
-  // - handle change keyboard language
-  // - handle shift
-  // - handle caps
   _handlePhysicalKeyboard(e) {
     let symbol;
 
@@ -188,18 +179,54 @@ const Keyboard = {
     let key = symbol.toLowerCase();
     key = key === 'capslock' ? 'caps' : key;
     key = key === ' ' ? 'space' : key;
+    key = key === 'arrowright' ? 'right' : key;
+    key = key === 'arrowleft' ? 'left' : key;
+
+    if (this._isEnglishKeyboard(key)) {
+      this.properties.lang = 'ru';
+      this._toggleLang();
+    } else if (this._isRussianKeyboard(key)) {
+      this.properties.lang = 'en';
+      this._toggleLang();
+    }
+
     let keyIndex = this.keyLayout[this.properties.lang].indexOf(key);
     if (keyIndex !== -1) {
       if (e.type === 'keydown') {
         this.elements.keys[keyIndex].classList.add(
           'keyboard__key--active-once'
         );
+        if (key === 'caps') {
+          this.properties.capsLock = !(
+            e.getModifierState && e.getModifierState('CapsLock')
+          );
+          this._toggleCapsLock();
+        }
+        if (key === 'shift') {
+          const prevShift = this.properties.shift;
+          this.properties.shift = !(
+            e.getModifierState && e.getModifierState('Shift')
+          );
+          this._toggleShift(this.properties.shift === prevShift);
+        }
       } else if (e.type === 'keyup') {
         this.elements.keys[keyIndex].classList.remove(
           'keyboard__key--active-once'
         );
+        if (key === 'shift') {
+          this.properties.shift = true;
+          this._toggleShift();
+        }
       }
     }
+  },
+
+  _isEnglishKeyboard(key) {
+    return key.length === 1 && /[a-zA-Z]/.test(key);
+  },
+
+  _isRussianKeyboard(key) {
+    return key.length === 1 && /[а-яА-ЯЁё]/.test(key);
   },
 
   // Creates HTML for an icon
@@ -214,7 +241,7 @@ const Keyboard = {
     keyLayout[this.properties.lang].forEach((key) => {
       const keyElement = document.createElement('button');
       const insertLineBreak =
-        ['backspace', 'p', 'enter', '?', 'ъ'].indexOf(key) !== -1;
+        ['backspace', 'p', 'enter', '/', '?', 'ъ'].indexOf(key) !== -1;
 
       // Add attributes/classes
       keyElement.setAttribute('type', 'button');
@@ -250,8 +277,7 @@ const Keyboard = {
           }
           keyElement.addEventListener('click', (e) => {
             this._toggleCapsLock();
-            const { lang, capsLock } = this.properties;
-            keyElement.classList.toggle('keyboard__key--active', capsLock);
+            const lang = this.properties.lang;
             this._playSound(this.elements.sounds[lang].caps);
           });
           break;
@@ -275,8 +301,7 @@ const Keyboard = {
           }
           keyElement.addEventListener('click', (e) => {
             this._toggleShift();
-            const { lang, shift } = this.properties;
-            keyElement.classList.toggle('keyboard__key--active-once', shift);
+            const { lang } = this.properties;
             this._playSound(this.elements.sounds[lang].shift);
           });
 
@@ -463,10 +488,14 @@ const Keyboard = {
 
   _toggleCapsLock() {
     this.properties.capsLock = !this.properties.capsLock;
-
+    const capsLock = this.properties.capsLock;
     for (const key of this.elements.keys) {
       if (key.childElementCount === 0) {
         key.textContent = this._toggleCase(key.textContent);
+      } else {
+        if (key.children[0].textContent === 'keyboard_capslock') {
+          key.classList.toggle('keyboard__key--active', capsLock);
+        }
       }
     }
   },
@@ -590,9 +619,19 @@ const Keyboard = {
     }
   },
 
-  _toggleShift() {
+  _toggleShift(changed = true) {
     this.properties.shift = !this.properties.shift;
-    this._alternateKeys();
+    const shift = this.properties.shift;
+    if (changed) {
+      this._alternateKeys();
+      for (const key of this.elements.keys) {
+        if (key.childElementCount !== 0) {
+          if (key.children[0].textContent === 'keyboard_arrow_up') {
+            key.classList.toggle('keyboard__key--active-once', shift);
+          }
+        }
+      }
+    }
   },
 
   _changePosition() {

@@ -245,6 +245,9 @@ const Keyboard = {
             'keyboard__key--activatable'
           );
           keyElement.innerHTML = this._createIconHtml('keyboard_capslock');
+          if (this.properties.capsLock) {
+            keyElement.classList.add('keyboard__key--active');
+          }
           keyElement.addEventListener('click', (e) => {
             this._toggleCapsLock();
             const { lang, capsLock } = this.properties;
@@ -267,6 +270,9 @@ const Keyboard = {
         case 'shift':
           keyElement.classList.add('keyboard__key--wide');
           keyElement.innerHTML = this._createIconHtml('keyboard_arrow_up');
+          if (this.properties.shift) {
+            keyElement.classList.add('keyboard__key--active-once');
+          }
           keyElement.addEventListener('click', (e) => {
             this._toggleShift();
             const { lang, shift } = this.properties;
@@ -289,16 +295,20 @@ const Keyboard = {
 
         case 'voice':
           keyElement.classList.add('keyboard__key--dark');
-          keyElement.innerHTML = this._createIconHtml('keyboard_voice');
+          if (this.properties.voice) {
+            keyElement.innerHTML = this._createIconHtml('mic_off');
+            keyElement.classList.add('keyboard__key--active-once');
+          } else {
+            keyElement.innerHTML = this._createIconHtml('keyboard_voice');
+          }
           window.SpeechRecognition =
             window.SpeechRecognition || window.webkitSpeechRecognition;
           try {
-            const { lang } = this.properties;
             const recognition = new SpeechRecognition();
             recognition.interimResults = true;
-            recognition.lang = lang === 'en' ? 'en-US' : 'ru-RU';
             keyElement.addEventListener('click', (e) => {
               const { lang } = this.properties;
+              recognition.lang = lang === 'en' ? 'en-US' : 'ru-RU';
               this._playSound(this.elements.sounds[lang].enter);
               this._toggleVoice();
               const { voice } = this.properties;
@@ -309,6 +319,8 @@ const Keyboard = {
                 recognition.stop();
               }
               recognition.addEventListener('result', (e) => {
+                const { lang } = this.properties;
+                recognition.lang = lang === 'en' ? 'en-US' : 'ru-RU';
                 const transcript = Array.from(e.results)
                   .map((result) => result[0])
                   .map((result) => result.transcript)
@@ -321,11 +333,17 @@ const Keyboard = {
                 }
               });
               recognition.addEventListener('end', (e) => {
-                const { voice } = this.properties;
-                if (voice) {
-                  recognition.stop();
-                  recognition.start();
-                } else {
+                try {
+                  const { lang } = this.properties;
+                  recognition.lang = lang === 'en' ? 'en-US' : 'ru-RU';
+                  const { voice } = this.properties;
+                  if (voice) {
+                    recognition.stop();
+                    recognition.start();
+                  } else {
+                    recognition.stop();
+                  }
+                } catch (error) {
                   recognition.stop();
                 }
               });
@@ -354,7 +372,7 @@ const Keyboard = {
 
         case 'lang':
           keyElement.classList.add('keyboard__key--dark');
-          keyElement.innerHTML = this.properties.lang;
+          keyElement.innerHTML = this._toggleCase(this.properties.lang);
           keyElement.addEventListener('click', (e) => {
             this._toggleLang();
             keyElement.innerHTML = this.properties.lang;
@@ -400,7 +418,7 @@ const Keyboard = {
           break;
 
         default:
-          keyElement.textContent = key.toLowerCase();
+          keyElement.textContent = this._toggleCase(key);
           keyElement.addEventListener('click', (e) => {
             this._changeValueByPosition(keyElement.textContent);
             this._triggerEvent('oninput');
@@ -453,9 +471,7 @@ const Keyboard = {
     }
   },
 
-  _toggleShift() {
-    this.properties.shift = !this.properties.shift;
-
+  _alternateKeys() {
     for (const key of this.elements.keys) {
       if (key.childElementCount === 0) {
         switch (key.textContent) {
@@ -483,6 +499,11 @@ const Keyboard = {
         }
       }
     }
+  },
+
+  _toggleShift() {
+    this.properties.shift = !this.properties.shift;
+    this._alternateKeys();
   },
 
   _changePosition() {
@@ -522,6 +543,10 @@ const Keyboard = {
     this.elements.keys = this.elements.keysContainer.querySelectorAll(
       '.keyboard__key'
     );
+
+    if (this.properties.shift) {
+      this._alternateKeys();
+    }
   },
 
   _toggleCase(key) {

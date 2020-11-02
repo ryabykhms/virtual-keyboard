@@ -326,12 +326,13 @@ const Keyboard = {
           } else {
             keyElement.innerHTML = this._createIconHtml('keyboard_voice');
           }
-          window.SpeechRecognition =
-            window.SpeechRecognition || window.webkitSpeechRecognition;
-          try {
-            const recognition = new SpeechRecognition();
-            recognition.interimResults = true;
-            keyElement.addEventListener('click', (e) => {
+          keyElement.addEventListener('click', (e) => {
+            try {
+              window.SpeechRecognition =
+                window.SpeechRecognition || window.webkitSpeechRecognition;
+
+              const recognition = new SpeechRecognition();
+              recognition.interimResults = true;
               const { lang } = this.properties;
               recognition.lang = lang === 'en' ? 'en-US' : 'ru-RU';
               this._playSound(this.elements.sounds[lang].enter);
@@ -372,10 +373,19 @@ const Keyboard = {
                   recognition.stop();
                 }
               });
-            });
-          } catch (e) {
-            console.log("Browser doesn't support Speech Recognition");
-          }
+            } catch (e) {
+              if (typeof Toast !== 'undefined') {
+                Toast.add({
+                  text:
+                    'Браузер не поддерживает распознавание речи! Протестируйте в Google Chrome!',
+                  color: '#dc3545',
+                  autohide: true,
+                  delay: 5000,
+                });
+              }
+              console.log("Browser doesn't support Speech Recognition");
+            }
+          });
           break;
 
         case 'sound':
